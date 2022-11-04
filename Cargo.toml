@@ -1,0 +1,18 @@
+[package]
+name    = "voxel"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "voxel_engine_exec"
+path = "src/sample/main.rs"
+
+[lib]
+name = "voxel_engine"
+path = "src/lib.rs"
+
+[dependencies]
+winit               = "0.27.5"
+raw-window-handle   = "0.5.0"
+wgpu                = "0.14.0"
+pollster            = "0.2.4"
