@@ -1,6 +1,20 @@
 use raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle};
 use wgpu::util::DeviceExt;
-use crate::engine::renderer::{RendererTrait, Shader, ComputePipeline};
+use crate::engine::renderer::{RendererTrait, Shader, ComputePipeline, BufferUsage, Buffer};
+
+struct InternalComputePipeline {
+    pipeline: wgpu::ComputePipeline,
+    bind_groups: Vec<(usize, wgpu::BindGroup)>,
+}
+
+impl InternalComputePipeline {
+    pub fn new(pipeline: wgpu::ComputePipeline) -> Self {
+        Self {
+            pipeline,
+            bind_groups: Vec::new(),
+        }
+    }
+}
 
 pub struct WGPURenderer {
     surface : wgpu::Surface,
@@ -19,7 +33,8 @@ pub struct WGPURenderer {
     blit_bind_group: wgpu::BindGroup,
 
     shaders : Vec<wgpu::ShaderModule>,
-    compute_pipelines: Vec<wgpu::ComputePipeline>,
+    compute_pipelines: Vec<InternalComputePipeline>,
+    buffers : Vec<wgpu::Buffer>,
 }
 
 impl RendererTrait for WGPURenderer {
@@ -122,12 +137,6 @@ impl RendererTrait for WGPURenderer {
             ]
         });
 
-        // let post_processing_data_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        //     label: Some("Post Process Data Buffer"),
-        //     contents: &[],
-        //     usage: wgpu::BufferUsages::UNIFORM,
-        // });
-
         Self {
             surface,
             device,
@@ -146,7 +155,12 @@ impl RendererTrait for WGPURenderer {
 
             shaders: Vec::new(),
             compute_pipelines: Vec::new(),
+            buffers: Vec::new(),
         }
+    }
+
+    fn get_size(&self) -> (u32, u32) {
+        (self.config.width, self.config.height)
     }
 
     fn render_begin(&mut self) {
@@ -253,24 +267,17 @@ impl RendererTrait for WGPURenderer {
         });
 
         let id = self.compute_pipelines.len();
-        self.compute_pipelines.push(pipeline);
+        self.compute_pipelines.push(InternalComputePipeline::new(pipeline));
 
         ComputePipeline { id }
     }
 
     fn dispatch_post_process_compute_pipeline(&mut self, pipeline: ComputePipeline, workgroups: (u32, u32, u32)) {
         let encoder = self.main_encoder.as_mut().unwrap();
-        
-        // let screen_size_data = unsafe { 
-        //     std::slice::from_raw_parts(
-        //         std::slice::from_ref(&(self.config.width, self.config.height)).as_ptr().cast::<u8>(),
-        //         std::mem::size_of::<u32>() * 2,
-        //     )
-        // };
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
-            layout: &self.compute_pipelines[pipeline.id].get_bind_group_layout(0),
+            layout: &self.compute_pipelines[pipeline.id].pipeline.get_bind_group_layout(0),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -287,10 +294,102 @@ impl RendererTrait for WGPURenderer {
             });
 
             pass.set_bind_group(0, &bind_group, &[]);
-            pass.set_pipeline(&self.compute_pipelines[pipeline.id]);
+
+            for (group, bind_group) in &self.compute_pipelines[pipeline.id].bind_groups {
+                let group = *group;
+                
+                if group <= 0 {
+                    continue;
+                }
+
+                pass.set_bind_group(group as u32, bind_group, &[]);
+            }
+
+            pass.set_pipeline(&self.compute_pipelines[pipeline.id].pipeline);
 
             let (x, y, _) = workgroups;
             pass.dispatch_workgroups(self.config.width / x, self.config.height / y, 1);
+        }
+    }
+
+    fn create_buffer(&mut self, size: u64, usage: BufferUsage, read_only: bool) -> Buffer {
+        let mut usage = match usage {
+            BufferUsage::UNIFORM => wgpu::BufferUsages::UNIFORM,
+        };
+
+        if read_only {
+            usage = usage | wgpu::BufferUsages::COPY_DST;
+        }
+
+        let id = self.buffers.len();
+
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size,
+            usage,
+            mapped_at_creation: false,
+        });
+
+        self.buffers.push(buffer);
+
+        Buffer { id }
+    }
+
+    fn create_buffer_with_data<T: bytemuck::Pod>(&mut self, data: &T, usage: BufferUsage, read_only: bool) -> Buffer {
+        let mut usage = match usage {
+            BufferUsage::UNIFORM => wgpu::BufferUsages::UNIFORM,
+        };
+
+        if read_only {
+            usage = usage | wgpu::BufferUsages::COPY_DST;
+        }
+
+        let id = self.buffers.len();
+
+        let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::bytes_of(data),
+            usage,
+        });
+
+        self.buffers.push(buffer);
+
+        Buffer { id }
+    }
+
+    fn update_buffer<T: bytemuck::Pod>(&self, buffer: Buffer, data: &T, offset: u64) {
+        let data = bytemuck::bytes_of(data);
+        self.queue.write_buffer(&self.buffers[buffer.id], offset, data);
+    }
+
+    fn destroy_buffer(&mut self, buffer: Buffer) {
+        self.buffers[buffer.id].destroy();
+    }
+
+    fn set_binding_data(&mut self, pipeline: ComputePipeline, group: u32, binding: u32, data: Buffer) {
+        let pipeline = &mut self.compute_pipelines[pipeline.id];
+
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.pipeline.get_bind_group_layout(group),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &self.buffers[data.id],
+                        offset: 0,
+                        size: None,
+                    }),
+                }
+            ]
+        });
+
+        let bind_group = (group as usize, bind_group);
+
+        if pipeline.bind_groups.iter_mut().find(|(id, _)| *id == (group as usize)).is_some() {
+            pipeline.bind_groups[group as usize]= bind_group;
+        } else {
+            pipeline.bind_groups.push(bind_group);
         }
     }
 }

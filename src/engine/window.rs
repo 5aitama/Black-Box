@@ -26,6 +26,7 @@ impl Window {
         let window = winit::window::Window::new(&event_loop).unwrap();
         
         window.set_resizable(false);
+        window.set_title("[Graphics Engine]");
         
         Self {
             event_loop,
