@@ -25,6 +25,8 @@ impl Window {
         let event_loop = winit::event_loop::EventLoop::new();
         let window = winit::window::Window::new(&event_loop).unwrap();
         
+        window.set_resizable(false);
+        
         Self {
             event_loop,
             window,

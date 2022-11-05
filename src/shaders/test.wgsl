@@ -1,17 +1,18 @@
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-};
+@group(0) @binding(0)
+var render_texture : texture_storage_2d<rgba8unorm, write>;
 
-@vertex
-fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> VertexOutput {
-    var out: VertexOutput;
-    let x = f32(1 - i32(in_vertex_index)) * 0.5;
-    let y = f32(i32(in_vertex_index & 1u) * 2 - 1) * 0.5;
-    out.clip_position = vec4<f32>(x, y, 0.0, 1.0);
-    return out;
-}
+@compute
+@workgroup_size(8, 8)
+fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
+    // X coordinates normalized (0..1).
+    let x = f32(id.x) / 1600.0;
 
-@fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(0.3, 0.2, 0.1, 1.0);
+    // Y coordinates normalized (0..1). Notice
+    // that i reverse the y axis because it will
+    // start from top left top bottom right by
+    // default instead of bottom left to top right.
+    let y = f32(u32(1200) - id.y) / 1200.0;
+
+    // Write into the texture.
+    textureStore(render_texture, vec2<i32>(id.xy), vec4<f32>(x, y, (x + y) / 2.0, 1.0));
 }

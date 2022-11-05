@@ -55,9 +55,12 @@ impl<R: RendererTrait + 'static> Engine<R> {
             let mut renderer = renderer.lock().unwrap();
 
             on_update_callback.as_mut()();
+            renderer.render_begin();
+            
+            renderer.render();
             on_render_callback.as_mut()(&mut renderer);
 
-            renderer.render();
+            renderer.render_end();
         };
         
         let renderer = self.renderer.clone();
