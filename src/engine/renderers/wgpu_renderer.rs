@@ -307,8 +307,8 @@ impl RendererTrait for WGPURenderer {
 
             pass.set_pipeline(&self.compute_pipelines[pipeline.id].pipeline);
 
-            let (x, y, _) = workgroups;
-            pass.dispatch_workgroups(self.config.width / x, self.config.height / y, 1);
+            let (x, y, z) = workgroups;
+            pass.dispatch_workgroups(self.config.width / x, self.config.height / y, z);
         }
     }
 

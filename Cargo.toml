@@ -17,3 +17,6 @@ raw-window-handle   = "0.5.0"
 wgpu                = "0.14.0"
 pollster            = "0.2.4"
 bytemuck            = { version = "1.12.2", features = ["derive"] }
+
+nalgebra = { version = "0.31.3", features = ["bytemuck"] }
+nalgebra-glm = { version = "0.17.0" }
