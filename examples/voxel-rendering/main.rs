@@ -111,6 +111,7 @@ fn main() {
         // This callback is called once each frame.
         // So in this callback you must put all your
         // game logic.
+        
         let dt = last_time.elapsed();
         last_time = std::time::Instant::now();
 
