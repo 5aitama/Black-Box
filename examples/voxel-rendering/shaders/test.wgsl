@@ -40,7 +40,7 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
             (map_pos.x ==  0 && map_pos.y ==  2 && map_pos.z == 0) ||
             (map_pos.x ==  0 && map_pos.y == -2 && map_pos.z == 0) ||
             (map_pos.x ==  0 && map_pos.y ==  0 && map_pos.z == 0)
-        ) 
+        )
         {
             let d: f32 = length(vec3<f32>(mask) * (side_dist - delta_dist));
             let dst: vec3<f32> = ray_pos + ray_dir * d;
