@@ -3,9 +3,13 @@ name    = "voxel"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "voxel_engine_exec"
-path = "src/sample/main.rs"
+exclude = ["target/**/*"]
+
+[[example]]
+name = "voxel-rendering"
+
+[[example]]
+name = "simple-window"
 
 [lib]
 name = "voxel_engine"
@@ -18,5 +22,6 @@ wgpu                = "0.14.0"
 pollster            = "0.2.4"
 bytemuck            = { version = "1.12.2", features = ["derive"] }
 
+[dev-dependencies]
 nalgebra = { version = "0.31.3", features = ["bytemuck"] }
 nalgebra-glm = { version = "0.17.0" }
