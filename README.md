@@ -1,5 +1,7 @@
-# GraphicsRS
-An exerimental project with graphics api and other stuffs.
+![](res/black-block-banner.png)
+
+<p align=center style="font-size:2rem;font-weight:bold;margin:0;">BLACK BOX</p>
+<p align=center style="font-size:1rem;">An exerimental project with graphics api and other stuffs.</p>
 
 ## Usage
 
