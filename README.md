@@ -1,7 +1,18 @@
 ![](res/black-block-banner.png)
 
-<p align=center style="font-size:2rem;font-weight:bold;margin:0;">BLACK BOX</p>
-<p align=center style="font-size:1rem;">An exerimental project with graphics api and other stuffs.</p>
+<h1 align=center>Black Box</h1>
+<p align=center>An exerimental 🧨 <b>Voxel Engine</b> written in <a href="">Rust 🦀</a></p>
+
+<p align=center>
+<img alt="GitHub Workflow Status (branch)" src="https://img.shields.io/github/workflow/status/5aitama/Black-Box/Rust/main">
+<img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/5aitama/Black-Box">
+<img alt="GitHub issues" src="https://img.shields.io/github/issues/5aitama/Black-Box">
+<img alt="GitHub top language" src="https://img.shields.io/github/languages/top/5aitama/Black-Box">
+<img alt="GitHub" src="https://img.shields.io/github/license/5aitama/Black-Box">
+</p>
+
+
+<br />
 
 ## Usage
 
