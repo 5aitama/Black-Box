@@ -1,31 +1,22 @@
 pub struct Camera {
     /// The camera projection matrix.
     proj_matrix: nalgebra::Matrix4<f32>,
-
     /// The camera view matrix.
     view_matrix: nalgebra::Matrix4<f32>,
-
     /// The current camera position.
     position: nalgebra_glm::Vec3,
-
     /// The current camera scale.
     scale: nalgebra_glm::Vec3,
-
     /// The current camera rotation.
     rotation: nalgebra_glm::Quat,
-
     /// The camera width.
     width: f32,
-
     /// The camera height.
     height: f32,
-
     /// The camera fov.
     fov: f32,
-
     /// The camera near.
     near: f32,
-
     /// The camera far.
     far: f32,
 }
@@ -106,6 +97,11 @@ impl Camera {
         self.position += v;
     }
 
+    /// Set the camera position.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `p` - The new camera position.
     pub fn set_position(&mut self, p: &nalgebra_glm::Vec3) {
         self.position = *p;
     }

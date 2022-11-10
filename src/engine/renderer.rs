@@ -21,6 +21,7 @@ pub struct Buffer {
 pub enum BufferUsage {
     /// Use the buffer as an uniform buffer (can be used in shader as binding)
     UNIFORM = 1,
+    STORAGE = 2,
 }
 
 pub trait RendererTrait {
@@ -112,5 +113,5 @@ pub trait RendererTrait {
     /// * `workgroups` - The amount of worker for each group.
     fn dispatch_post_process_compute_pipeline(&mut self, pipeline: ComputePipeline, workgroups: (u32, u32, u32));
 
-    fn set_binding_data(&mut self, pipeline: ComputePipeline, group: u32, binding: u32, data: Buffer);
+    fn set_binding_data(&mut self, pipeline: ComputePipeline, group: u32, data: &[Buffer]);
 }

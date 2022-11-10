@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod voxel_octree;
 
 use std::sync::{Arc, Mutex};
 
@@ -8,6 +9,7 @@ use voxel_engine::engine::{
     renderers::wgpu_renderer::WGPURenderer, 
     Engine
 };
+use voxel_octree::Node;
 
 #[repr(C)]
 #[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default)]
@@ -26,15 +28,15 @@ pub struct UniformTimeData {
 #[repr(C)]
 #[derive(bytemuck::Pod, bytemuck::Zeroable, Clone, Copy, Default)]
 pub struct InData {
-    screen_data: UniformScreenData,
-    time_data: UniformTimeData,
     inv_proj_view_matrix: nalgebra::Matrix4<f32>,
+    screen_data: nalgebra::Vector2<f32>,
+    time_data: UniformTimeData,
     near: f32,
     far: f32,
-    
-    // Extra padding of 12bytes to align with
+
+    // Extra padding of 8bytes to align with
     // GPU memory...
-    _padding: [u8; 12],
+    _padding: [u8; 8],
 }
 
 impl InData {
@@ -46,7 +48,7 @@ impl InData {
         camera.translate(&nalgebra_glm::vec3(1f32, 1.0, -15.0));
 
         Self {
-            screen_data: UniformScreenData { width, height },
+            screen_data: nalgebra_glm::Vec2::new(width, height),//UniformScreenData { width, height },
             time_data: UniformTimeData::default(),
             inv_proj_view_matrix: camera.get_proj_view_matrix().try_inverse().unwrap(),
             near,
@@ -65,6 +67,19 @@ impl InData {
 }
 
 fn main() {
+    let mut node = Node::new((0.0, 0.0, 0.0), 4.0);
+    node.add_point((-0.25, -0.25, -0.25));
+    println!("Point is added !");
+    println!("{:#?}", node);
+
+    // const WGPU_ALIGNMENT: usize = 8;
+    // const WGPU_ALIGNMENT_MASK: usize = WGPU_ALIGNMENT - 1;
+
+    // let buffer_size = std::mem::size_of::<Test>();
+    // let buffer_padded_size = ((buffer_size + WGPU_ALIGNMENT_MASK) & !WGPU_ALIGNMENT_MASK).max(WGPU_ALIGNMENT);
+
+    // println!("additional bytes for Test is {} bytes", buffer_padded_size - buffer_size);
+
     let mut engine = Engine::<WGPURenderer>::new();
 
     let camera = engine.with_renderer_ref(|renderer| {
@@ -75,6 +90,9 @@ fn main() {
         let mut camera = Camera::new(width as f32, height as f32, near, far, 45.0);
         camera.translate(&nalgebra_glm::vec3(1f32, 1.0, -15.0));
 
+        // Create an arc mutex for the camera because
+        // it will be potentialy shared across different
+        // threads.
         Arc::new(Mutex::new(camera))
     });
 
@@ -98,8 +116,11 @@ fn main() {
 
         // Create the uniform buffer that will use the pipeline
         // created above.
+        let data = [0i32];
         let uniform_buffer = renderer.create_buffer_with_data(&uniform_data, BufferUsage::UNIFORM, true);
-        renderer.set_binding_data(pipeline, 1, 0, uniform_buffer);
+        let octree_buffer = renderer.create_buffer_with_data(&data, BufferUsage::STORAGE, true);
+
+        renderer.set_binding_data(pipeline, 1, &[uniform_buffer, octree_buffer]);
 
         (uniform_buffer, pipeline)
     });

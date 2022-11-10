@@ -1,18 +1,20 @@
-
 @group(0) @binding(0)
 var render_texture : texture_storage_2d<rgba8unorm, write>;
 
 struct InData {
-    screen_size: vec2<f32>,
-    time: f32,
-    delta_time: f32,
-    inv_proj_view_matrix: mat4x4<f32>,
-    near: f32,
-    far: f32,
+    inv_proj_view_matrix : mat4x4<f32>,
+    screen_size          : vec2<f32>,
+    time                 : f32,
+    delta_time           : f32,
+    near                 : f32,
+    far                  : f32,
 };
 
 @group(1) @binding(0)
 var<uniform> in_data: InData;
+
+@group(1) @binding(1)
+var<storage, read_write> octree_data: array<i32>;
 
 let MAX_RAY_STEPS: i32 = 128;
 
@@ -25,14 +27,15 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
     let ray_pos: vec3<f32> = (in_data.inv_proj_view_matrix * vec4<f32>(uv, 2.0, 1.0) * in_data.near).xyz;
     let ray_dir: vec3<f32> = (in_data.inv_proj_view_matrix * vec4<f32>(uv * (in_data.far - in_data.near), in_data.far + in_data.near, in_data.far - in_data.near)).xyz;
 
-    let ray_step: vec3<i32> = vec3<i32>(sign(ray_dir));
+    let ray_step: vec3<i32>   = vec3<i32>(sign(ray_dir));
     let delta_dist: vec3<f32> = 1.0 / abs(ray_dir);
 
-    var map_pos: vec3<i32> = vec3<i32>(floor(ray_pos + 0.));
+    var map_pos: vec3<i32>   = vec3<i32>(floor(ray_pos + 0.));
     var side_dist: vec3<f32> = (sign(ray_dir) * (vec3<f32>(map_pos) - ray_pos) + (sign(ray_dir) * 0.5) + 0.5) * delta_dist;
-    var color: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
-    var mask: vec3<i32> = vec3<i32>(0, 0, 0);
-
+    var color: vec3<f32>     = vec3<f32>(0.0, 0.0, 0.0);
+    var mask: vec3<i32>      = vec3<i32>(0, 0, 0);
+    
+    let x = octree_data[0];
     for(var i: i32 = 0; i < MAX_RAY_STEPS; i++) {
         if (
             (map_pos.x ==  2 && map_pos.y ==  0 && map_pos.z == 0) ||

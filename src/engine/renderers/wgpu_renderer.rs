@@ -315,6 +315,7 @@ impl RendererTrait for WGPURenderer {
     fn create_buffer(&mut self, size: u64, usage: BufferUsage, read_only: bool) -> Buffer {
         let mut usage = match usage {
             BufferUsage::UNIFORM => wgpu::BufferUsages::UNIFORM,
+            BufferUsage::STORAGE => wgpu::BufferUsages::STORAGE,
         };
 
         if read_only {
@@ -338,6 +339,7 @@ impl RendererTrait for WGPURenderer {
     fn create_buffer_with_data<T: bytemuck::Pod>(&mut self, data: &T, usage: BufferUsage, read_only: bool) -> Buffer {
         let mut usage = match usage {
             BufferUsage::UNIFORM => wgpu::BufferUsages::UNIFORM,
+            BufferUsage::STORAGE => wgpu::BufferUsages::STORAGE,
         };
 
         if read_only {
@@ -366,22 +368,24 @@ impl RendererTrait for WGPURenderer {
         self.buffers[buffer.id].destroy();
     }
 
-    fn set_binding_data(&mut self, pipeline: ComputePipeline, group: u32, binding: u32, data: Buffer) {
+    fn set_binding_data(&mut self, pipeline: ComputePipeline, group: u32, data: &[Buffer]) {
         let pipeline = &mut self.compute_pipelines[pipeline.id];
+
+        let entries = data.iter().enumerate().map(|(index, buff)| {
+            wgpu::BindGroupEntry {
+                binding: index as u32,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: &self.buffers[buff.id],
+                    offset: 0,
+                    size: None,
+                }),
+            }
+        });
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &pipeline.pipeline.get_bind_group_layout(group),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: &self.buffers[data.id],
-                        offset: 0,
-                        size: None,
-                    }),
-                }
-            ]
+            entries: &entries.collect::<Vec<_>>(),
         });
 
         let bind_group = (group as usize, bind_group);
