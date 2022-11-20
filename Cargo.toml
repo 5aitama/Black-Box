@@ -29,5 +29,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "black-box-engine"
+    "black-box-engine",
+    "core-graphics",
 ]
