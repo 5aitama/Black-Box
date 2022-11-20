@@ -6,6 +6,21 @@ use std::sync::{Arc, Mutex};
 
 use crate::engine::{ renderer::RendererTrait, window::Window };
 
+use self::renderers::wgpu_renderer::WGPURenderer;
+
+pub struct MRenderer {
+
+}
+
+#[derive(Default)]
+pub struct GRenderer<R: RendererTrait + Sized + 'static> {
+    internal: Option<R>
+}
+
+static mut GRENDERER: GRenderer<WGPURenderer> = GRenderer {
+    internal: None,
+};
+
 pub struct Engine<R: RendererTrait + 'static> {
     window: Window,
     renderer: Arc<Mutex<R>>,
@@ -15,6 +30,8 @@ pub struct Engine<R: RendererTrait + 'static> {
 
 impl<R: RendererTrait + 'static> Engine<R> {
     pub fn new() -> Self {
+        let internal = unsafe { GRENDERER.internal.as_mut().unwrap() };
+
         let window = Window::new();
         let renderer = R::new(&window, window.size());
 

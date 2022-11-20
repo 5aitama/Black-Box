@@ -180,7 +180,7 @@ impl RendererTrait for WGPURenderer {
         let encoder = self.main_encoder.as_mut().unwrap();
         
         {
-            let render_texture_view =self.render_texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let render_texture_view = self.render_texture.create_view(&wgpu::TextureViewDescriptor::default());
              
             let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -242,6 +242,17 @@ impl RendererTrait for WGPURenderer {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
+
+            self.render_texture.destroy();
+            self.render_texture = self.device.create_texture(&wgpu::TextureDescriptor {
+                label           : Some("RenderTexture"),
+                size            : wgpu::Extent3d { width: new_size.width, height: new_size.height, depth_or_array_layers: 1 },
+                mip_level_count : 1,
+                sample_count    : 1,
+                dimension       : wgpu::TextureDimension::D2,
+                format          : wgpu::TextureFormat::Rgba8Unorm,
+                usage           : wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            });
         }
     }
 
@@ -275,37 +286,38 @@ impl RendererTrait for WGPURenderer {
     fn dispatch_post_process_compute_pipeline(&mut self, pipeline: ComputePipeline, workgroups: (u32, u32, u32)) {
         let encoder = self.main_encoder.as_mut().unwrap();
 
-        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &self.compute_pipelines[pipeline.id].pipeline.get_bind_group_layout(0),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.render_texture.create_view(&wgpu::TextureViewDescriptor::default())
-                    ),
-                }
-            ]
-        });
+        let pipeline = &mut self.compute_pipelines[pipeline.id];
 
-        {
-            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+        let postprocess_bing_group = pipeline.bind_groups.iter()
+            .find(|(group_id, _)| *group_id == 0);
+
+        if postprocess_bing_group.is_none() {
+            let postprocess_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
+                layout: &pipeline.pipeline.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(
+                            &self.render_texture.create_view(&wgpu::TextureViewDescriptor::default())
+                        ),
+                    }
+                ]
             });
 
-            pass.set_bind_group(0, &bind_group, &[]);
+            pipeline.bind_groups.push((0, postprocess_bind_group));
+        }
 
-            for (group, bind_group) in &self.compute_pipelines[pipeline.id].bind_groups {
+        {
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
+
+            for (group, bind_group) in &pipeline.bind_groups {
                 let group = *group;
-                
-                if group <= 0 {
-                    continue;
-                }
 
                 pass.set_bind_group(group as u32, bind_group, &[]);
             }
 
-            pass.set_pipeline(&self.compute_pipelines[pipeline.id].pipeline);
+            pass.set_pipeline(&pipeline.pipeline);
 
             let (x, y, z) = workgroups;
             pass.dispatch_workgroups(self.config.width / x, self.config.height / y, z);

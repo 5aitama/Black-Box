@@ -1,0 +1,11 @@
+[package]
+name = "black-box-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit               = "0.27.5"
+raw-window-handle   = "0.5.0"
+wgpu                = "0.14.0"
+pollster            = "0.2.4"
+bytemuck            = { version = "1.12.2", features = ["derive"] }
