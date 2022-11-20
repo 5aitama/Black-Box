@@ -1,7 +1,7 @@
 ![](res/black-block-banner.png)
 
 <h1 align=center>Black Box</h1>
-<p align=center>An exerimental 🧨 <b>Voxel Engine</b> written in <a href="">Rust 🦀</a></p>
+<p align=center>An exerimental 🧨 <b>Voxel Engine</b> written in <a href="https://www.rust-lang.org/">Rust 🦀</a> on top on <a href="https://www.vulkan.org/">Vulkan</a> 🌋</p>
 
 <p align=center>
 <img alt="GitHub Workflow Status (branch)" src="https://img.shields.io/github/workflow/status/5aitama/Black-Box/Rust/main">
